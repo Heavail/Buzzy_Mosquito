@@ -142,9 +142,9 @@ def main():
             pipes_velocity += acceleration
         backgrounds,back_pos = backs.repeatperscreen(width,backgrounds,'background',[width,height],back_pos,2,moveby= background_velocity,rate = None)
         player.animate(pos=[player.pos[0],playery],flipx = True,rate = player_rate)
-        pipes1,pipe1y = pipes_1.repeatperscreen(width,pipes1,'pipe',[100,height],pipe_pos1,4,randomyrange=(-int(height),-pipe_gap),moveby=pipes_velocity ,rotate=180)
+        pipes1,pipe1y = pipes_1.repeatperscreen(width,pipes1,'obstacle',[100,height],pipe_pos1,4,randomyrange=(-int(height),-pipe_gap),moveby=pipes_velocity ,rotate=180)
         collided1 = pipes_1.collision(player,width_bias = -100,y_bias= 100,height_bias = -70,x_bias = 70)
-        pipes2,score = pipes_2.repeatperscreen(width,pipes2,'pipe',[100,height],pipe_pos2,4,moveby=pipes_velocity,y_list=pipe1y,biasy = height + pipe_gap,score = score)
+        pipes2,score = pipes_2.repeatperscreen(width,pipes2,'obstacle',[100,height],pipe_pos2,4,moveby=pipes_velocity,y_list=pipe1y,biasy = height + pipe_gap,score = score)
         collided2 = pipes_2.collision(player,width_bias = -100,y_bias= 100,height_bias = -70,x_bias = 70)
         score_image = Font.render(f'SCORE = {score}',True,(255,0,0))
         High_score_image = Font.render(f'HIGHSCORE = {high_score}',True,(255,0,0))
