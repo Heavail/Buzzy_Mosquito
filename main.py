@@ -8,12 +8,14 @@ pm.init()
 screen_info = pm.display.Info()
 height = screen_info.current_h
 width = screen_info.current_w
+pm.mixer.init()
 
 screen = pm.display.set_mode((width,height- 50))
 
 class assets:
-    def __init__(self,frame_folder,pos,size):
+    def __init__(self,frame_folder,pos,size,switch = False):
         self.frame_folder = frame_folder
+        self.switch = switch
         self._pos = pos
         self._size = size
         self.for_once = True
@@ -22,7 +24,8 @@ class assets:
         self.frame = {}
         self.frames = os.listdir(self.frame_folder)
         for count,frame in enumerate(self.frames):
-            self.frame[f'{count}'] = pm.image.load(f'{self.frame_folder}\\{frame}').convert_alpha()
+            self.frame[f'{count}'] = pm.transform.scale(pm.image.load(f'{self.frame_folder}\\{frame}').convert_alpha(),self.size)
+        self.image = self.frame['0']
         print(self.frame)
 
     @property
@@ -51,17 +54,30 @@ class assets:
             size = self.size
         else:
             self.size = size
-        if self.frame_count == len(self.frames):
-            self.frame_count = 0
         if self.rate_count == rate or self.for_once == True:
             self.rate_count = 0
             self.image = pm.transform.rotate(pm.transform.scale(self.frame[f'{self.frame_count}'],(size[0],size[1])),rotate)
             self.image = pm.transform.flip(self.image,flipx,flipy)
             self.frame_count += 1
             self.for_once = False
+        if self.frame_count == len(self.frames):
+            self.frame_count = 0
         screen.blit(self.image,(pos[0],pos[1]))
         if rate != None:
             self.rate_count += 1
+    def change_switch(self):
+        mouse_pos = pm.mouse.get_pos()
+        self.image = self.frame[f'{self.frame_count}']
+        if mouse_pos[0] > self.pos[0] and mouse_pos[0] < self.pos[0] + self.size[0] and mouse_pos[1] > self.pos[1] and mouse_pos[1] < self.pos[1] + self.size[1]:
+            self.frame_count += 1
+            if self.frame_count == len(self.frames):
+                self.frame_count = 0
+            self.image = self.frame[f'{self.frame_count}']
+            if self.switch:
+                self.switch = False
+            else:
+                self.switch = True
+        
 
 class multiple_asset:
     def __init__(self):
@@ -107,6 +123,7 @@ class multiple_asset:
         return collision
 async def main():
     back_pos = [0,0]
+    sound = pm.mixer.Sound('mosquito_noise.mp3')
     for_once = True
     backgrounds = []
     pipe_pos1 = [2 * width,0]
@@ -119,6 +136,9 @@ async def main():
     pipes_1 = multiple_asset()
     pipes_2 = multiple_asset()
     player = assets('mosquito',[100,500],[200,200])
+    speaker = assets('speaker',[width - 100,0],[100,100],switch = True)
+    speaker_frame_rate = None
+    speaker_on = True
     Font = pm.font.SysFont("Kristen ITC",30)
     game_over = False
     over_width,over_height = (700,125)
@@ -137,21 +157,26 @@ async def main():
         for event in pm.event.get():
             if event.type == pm.QUIT:
                 pm.quit()
-            if game_over and event.type == MOUSEBUTTONDOWN:
-                screen.blit(Loading,((width/2 - Loading.get_width()/2,height/2 + Loading.get_height()/2)))
-                pm.display.update()
-                await main()
+            if event.type == MOUSEBUTTONDOWN:
+                if game_over:
+                    screen.blit(Loading,((width/2 - Loading.get_width()/2,height/2 + Loading.get_height()/2)))
+                    pm.display.update()
+                    await main()
+                else:
+                    speaker.change_switch()
         screen.fill((0,0,0))
         if not collided1 and not collided2:
-            playery = pm.mouse.get_pos()[1]
+            mouse_pos = pm.mouse.get_pos()
+            playery = mouse_pos[1]
             background_velocity += acceleration
             pipes_velocity += acceleration
         backgrounds,back_pos = backs.repeatperscreen(2 * width,backgrounds,'background',[width,height],back_pos,4,moveby= background_velocity,rate = None)
+        screen.blit(speaker.image,speaker.pos)
         player.animate(pos=[player.pos[0],playery],flipx = True,rate = player_rate)
         pipes1,pipe1y = pipes_1.repeatperscreen(width,pipes1,'obstacle',[100,height],pipe_pos1,4,randomyrange=(-int(height),-pipe_gap),moveby=pipes_velocity ,rotate=180)
-        collided1 = pipes_1.collision(player,width_bias = -100,y_bias= 100,height_bias = -70,x_bias = 70)
+        # collided1 = pipes_1.collision(player,width_bias = -100,y_bias= 100,height_bias = -70,x_bias = 70)
         pipes2,score = pipes_2.repeatperscreen(width,pipes2,'obstacle',[100,height],pipe_pos2,4,moveby=pipes_velocity,y_list=pipe1y,biasy = height + pipe_gap,score = score)
-        collided2 = pipes_2.collision(player,width_bias = -100,y_bias= 100,height_bias = -70,x_bias = 70)
+        # collided2 = pipes_2.collision(player,width_bias = -100,y_bias= 100,height_bias = -70,x_bias = 70)
         score_image = Font.render(f'SCORE = {score}',True,(255,0,0))
         High_score_image = Font.render(f'HIGHSCORE = {high_score}',True,(255,0,0))
         screen.blit(score_image,(0,0))
@@ -159,36 +184,20 @@ async def main():
         if score > high_score:
             open('highscore.txt','w').write(f'{score}')
         if collided1 == True or collided2 == True:
+            sound.stop()
             background_velocity = 0
             pipes_velocity = 0
             player_rate = None
             game_over = True
             screen.blit(gameover,(width/2 - over_width/2,height/2.5 - over_height/2))
             screen.blit(taptoplay,(width/2 - taptoplay.get_width()/2,height/2 - taptoplay.get_height()/2))
-
+        print(speaker.frame[f'{speaker.frame_count}'])
+        if speaker.switch:
+            sound.play()
+        else:
+            sound.stop()
         pm.display.update()
         clock.tick(60)
         await asyncio.sleep(0)
 
 asyncio.run(main())
-
-''' just writing some damn shitty stuff to test whether my hackclub is working well or not may be 
-    I will be writing this for about 1 to 2 minutes to check my summer of making in hackclub accound
-    so let's just have a look after the given minutes if my summer of making is responding or not
-    anyways what if it works am I sure it will be ok for the rest of the further times or will it 
-    start bugging like it did before ?? whatever happens my simple goal is to keep learning and  in 
-    the meanwhile whatever I will learn and whatever the project I will create for the next 30 days 
-    I will keep uploading them on the github and summer of making including hackatime to record 
-    my progress and actively participate in the event with this it says I am done with 7 minutes of work
-    so let's see my hackatime and summer of making website whether they are working perfectly or not
-    '''
-
-""" let's start again for about a minute to track my coding time in the hackclub because this
-    shitty thing falied again and let's have a look if it works this time or not anyways this timem 
-    I won't be taking too long just about a minute or two and then I will be done with woaaa it suddenly says 
-    4 minute how in the world is that possible like seriously it jumperd from 0 to 4 directly how 
-    the hell this plugin or api whatever we can say actually works ?? I know for sure it's may
-    be not recobnizing that I am commenting rather than coding to track my coding time anyways I guess 
-    even if the wakatime is wrong I would have still passed the time of about more than a minute so 
-    let's check if I come back again or not it's very possible I won't be coming back because I won't be 
-    wasting my too much time for this anyways"""
