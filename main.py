@@ -9,8 +9,10 @@ screen_info = pm.display.Info()
 height = screen_info.current_h
 width = screen_info.current_w
 pm.mixer.init()
+pm.display.set_caption('Buzzy_Mosquito')
 
 screen = pm.display.set_mode((width,height- 50))
+pm.display.set_icon(pm.image.load('icon.png').convert_alpha())
 
 class assets:
     def __init__(self,frame_folder,pos,size,switch = False):
@@ -26,7 +28,6 @@ class assets:
         for count,frame in enumerate(self.frames):
             self.frame[f'{count}'] = pm.transform.scale(pm.image.load(f'{self.frame_folder}\\{frame}').convert_alpha(),self.size)
         self.image = self.frame['0']
-        print(self.frame)
 
     @property
     def pos(self):
@@ -123,7 +124,7 @@ class multiple_asset:
         return collision
 async def main():
     back_pos = [0,0]
-    sound = pm.mixer.Sound('mosquito_noise.mp3')
+    sound = pm.mixer.Sound('mosquito_noise.ogg')
     for_once = True
     backgrounds = []
     pipe_pos1 = [2 * width,0]
