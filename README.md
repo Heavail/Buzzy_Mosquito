@@ -1,5 +1,5 @@
 <H1>About the Game</H1>
-This is a simple python based game made by the help of pygame library. In this game you have to control the y axis of the mosquito in order to dodge the electrified badmintons which are dangerous to kill the mosquito.
+This is a simple python based game made by the help of pygame library. In this game you have to control the y axis of the mosquito in order to dodge the electrified badmintons which are dangerous enough to kill the mosquito.
 Your motive in this game is to go as far as possible without touching those badmintons. the game gets faster and tougher with the distance you cover.
 <H2>How to Play the game </H2>
 You can clone my game in your folder and run it if you have python and pygame installed or you can directly play it on the web through this link: https://heavail.github.io/Buzzy_Mosquito_web/.
