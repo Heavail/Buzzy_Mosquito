@@ -185,14 +185,13 @@ async def main():
         if score > high_score:
             open('highscore.txt','w').write(f'{score}')
         if collided1 == True or collided2 == True:
-            sound.stop()
+            speaker.switch = False
             background_velocity = 0
             pipes_velocity = 0
             player_rate = None
             game_over = True
             screen.blit(gameover,(width/2 - over_width/2,height/2.5 - over_height/2))
             screen.blit(taptoplay,(width/2 - taptoplay.get_width()/2,height/2 - taptoplay.get_height()/2))
-        print(speaker.frame[f'{speaker.frame_count}'])
         if speaker.switch:
             sound.play()
         else:
