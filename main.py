@@ -24,7 +24,7 @@ class assets:
         self.frame_count = 0
         self.rate_count = 0
         self.frame = {}
-        self.frames = os.listdir(self.frame_folder)
+        self.frames = os.listdir(self.frame_folder)     
         for count,frame in enumerate(self.frames):
             self.frame[f'{count}'] = pm.transform.scale(pm.image.load(f'{self.frame_folder}\\{frame}').convert_alpha(),self.size)
         self.image = self.frame['0']
@@ -83,7 +83,7 @@ class assets:
 class multiple_asset:
     def __init__(self):
         self.ys = []
-    def repeatperscreen(self,screenwidth,asset,frame_folder,size,pos,count,y_list = None,biasx = 5,biasy = 0,randomyrange = (0,0),moveby = 0,rotate = 0,rate = None,score = None):
+    def repeatperscreen(self,screenwidth,asset,frame_folder,size,pos,count,y_list = None,biasx = 5,biasy = 0,randomyrange = (0,0),moveby = 0,rotate = 0,rate = None,score = None, dt = 1):
         # print(asset)
         gap = screenwidth/(count - 1)
         # if len(asset) > count:
@@ -122,9 +122,11 @@ class multiple_asset:
                 collision = True
                 break
         return collision
+speaker = assets('speaker',[width - 100,0],[100,100],switch = True)
+sound = pm.mixer.Sound('mosquito_noise.ogg')
+channel = pm.mixer.Channel(0)
 async def main():
     back_pos = [0,0]
-    sound = pm.mixer.Sound('mosquito_noise.ogg')
     for_once = True
     backgrounds = []
     pipe_pos1 = [2 * width,0]
@@ -132,12 +134,12 @@ async def main():
     pipe_pos2 = [2 * width,0]
     pipes2 = []
     clock = pm.time.Clock()
+    prev = time.time()
     pipe_gap = 250
     backs = multiple_asset()
     pipes_1 = multiple_asset()
     pipes_2 = multiple_asset()
     player = assets('mosquito',[100,500],[200,200])
-    speaker = assets('speaker',[width - 100,0],[100,100],switch = True)
     speaker_frame_rate = None
     speaker_on = True
     Font = pm.font.SysFont("Kristen ITC",30)
@@ -166,15 +168,18 @@ async def main():
                 else:
                     speaker.change_switch()
         screen.fill((0,0,0))
+        new = time.time()
+        dt = (new - prev) * 60
+        prev = new
         if not collided1 and not collided2:
             mouse_pos = pm.mouse.get_pos()
             playery = mouse_pos[1]
             background_velocity += acceleration
-            pipes_velocity += acceleration
-        backgrounds,back_pos = backs.repeatperscreen(2 * width,backgrounds,'background',[width,height],back_pos,4,moveby= background_velocity,rate = None)
+            pipes_velocity += acceleration * dt
+        backgrounds,back_pos = backs.repeatperscreen(2 * width,backgrounds,'background',[width,height],back_pos,4,moveby= background_velocity * dt,rate = None)
         screen.blit(speaker.image,speaker.pos)
         player.animate(pos=[player.pos[0],playery],flipx = True,rate = player_rate)
-        pipes1,pipe1y = pipes_1.repeatperscreen(width,pipes1,'obstacle',[100,height],pipe_pos1,4,randomyrange=(-int(height),-pipe_gap),moveby=pipes_velocity ,rotate=180)
+        pipes1,pipe1y = pipes_1.repeatperscreen(width,pipes1,'obstacle',[100,height],pipe_pos1,4,randomyrange=(-int(height),-pipe_gap),moveby=pipes_velocity ,rotate=180,dt = dt)
         collided1 = pipes_1.collision(player,width_bias = -100,y_bias= 100,height_bias = -70,x_bias = 70)
         pipes2,score = pipes_2.repeatperscreen(width,pipes2,'obstacle',[100,height],pipe_pos2,4,moveby=pipes_velocity,y_list=pipe1y,biasy = height + pipe_gap,score = score)
         collided2 = pipes_2.collision(player,width_bias = -100,y_bias= 100,height_bias = -70,x_bias = 70)
@@ -185,15 +190,15 @@ async def main():
         if score > high_score:
             open('highscore.txt','w').write(f'{score}')
         if collided1 == True or collided2 == True:
-            speaker.switch = False
             background_velocity = 0
             pipes_velocity = 0
             player_rate = None
             game_over = True
             screen.blit(gameover,(width/2 - over_width/2,height/2.5 - over_height/2))
             screen.blit(taptoplay,(width/2 - taptoplay.get_width()/2,height/2 - taptoplay.get_height()/2))
-        if speaker.switch:
-            sound.play()
+        if speaker.switch and not (collided1 or collided2):
+            if not channel.get_busy():
+                channel.play(sound)
         else:
             sound.stop()
         pm.display.update()
